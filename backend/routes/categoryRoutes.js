@@ -1,6 +1,8 @@
 const express = require("express");
 const protect = require("../middleware/authMiddleware");
 const Category = require("../models/Category");
+const httpError = require("../utils/httpError");
+const asyncHandler = require("../utils/asyncHandler");
 
 const router = express.Router();
 
@@ -12,29 +14,31 @@ const normalizeCategoryName = (name) => {
   return name.trim().toLowerCase();
 };
 
-router.get("/", protect, async (req, res) => {
-  try {
+router.get(
+  "/",
+  protect,
+  asyncHandler(async (req, res) => {
     const categories = await Category.find({ user: req.user })
       .select("_id name createdAt updatedAt")
       .sort({ name: 1 });
 
     res.json(categories);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  })
+);
 
-router.post("/", protect, async (req, res) => {
-  try {
+router.post(
+  "/",
+  protect,
+  asyncHandler(async (req, res, next) => {
     const { name } = req.body;
     const normalizedName = normalizeCategoryName(name);
 
     if (!normalizedName) {
-      return res.status(400).json({ message: "Category name is required" });
+      return next(httpError(400, "Category name is required"));
     }
 
     if (normalizedName.length > 50) {
-      return res.status(400).json({ message: "Category name must be 50 characters or less" });
+      return next(httpError(400, "Category name must be 50 characters or less"));
     }
 
     const existingCategory = await Category.findOne({
@@ -43,7 +47,7 @@ router.post("/", protect, async (req, res) => {
     });
 
     if (existingCategory) {
-      return res.status(400).json({ message: "Category already exists" });
+      return next(httpError(400, "Category already exists"));
     }
 
     const category = await Category.create({
@@ -58,9 +62,7 @@ router.post("/", protect, async (req, res) => {
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  })
+);
 
 module.exports = router;

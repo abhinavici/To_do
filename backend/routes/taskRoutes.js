@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const protect = require("../middleware/authMiddleware");
 const Task = require("../models/Task");
 const Category = require("../models/Category");
+const httpError = require("../utils/httpError");
+const asyncHandler = require("../utils/asyncHandler");
 
 const router = express.Router();
 const VALID_STATUSES = new Set(["pending", "completed"]);
@@ -36,20 +38,22 @@ const resolveCategory = async (rawCategory, userId) => {
   return { value: category._id };
 };
 
-router.post("/", protect, async (req, res) => {
-  try {
+router.post(
+  "/",
+  protect,
+  asyncHandler(async (req, res, next) => {
     const trimmedTitle = normalizeText(req.body.title);
     const trimmedDescription = normalizeText(req.body.description);
 
     if (!trimmedTitle) {
-      return res.status(400).json({ message: "Title is required" });
+      return next(httpError(400, "Title is required"));
     }
 
     let categoryValue = null;
     if (req.body.category !== undefined) {
       const categoryResolution = await resolveCategory(req.body.category, req.user);
       if (categoryResolution.error) {
-        return res.status(400).json({ message: categoryResolution.error });
+        return next(httpError(400, categoryResolution.error));
       }
       categoryValue = categoryResolution.value;
     }
@@ -63,43 +67,43 @@ router.post("/", protect, async (req, res) => {
 
     const populatedTask = await Task.findById(task._id).populate("category", "name");
     res.status(201).json(populatedTask);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  })
+);
 
-router.get("/", protect, async (req, res) => {
-  try {
+router.get(
+  "/",
+  protect,
+  asyncHandler(async (req, res) => {
     const tasks = await Task.find({ user: req.user })
       .populate("category", "name")
       .sort({ createdAt: -1 });
 
     res.json(tasks);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  })
+);
 
-router.put("/:id", protect, async (req, res) => {
-  try {
+router.put(
+  "/:id",
+  protect,
+  asyncHandler(async (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid task id" });
+      return next(httpError(400, "Invalid task id"));
     }
 
     const task = await Task.findById(req.params.id);
 
     if (!task) {
-      return res.status(404).json({ message: "Task not found" });
+      return next(httpError(404, "Task not found"));
     }
 
     if (task.user.toString() !== req.user) {
-      return res.status(401).json({ message: "Not authorized" });
+      return next(httpError(401, "Not authorized"));
     }
 
     if (req.body.title !== undefined) {
       const nextTitle = normalizeText(req.body.title);
       if (!nextTitle) {
-        return res.status(400).json({ message: "Title cannot be empty" });
+        return next(httpError(400, "Title cannot be empty"));
       }
       task.title = nextTitle;
     }
@@ -110,7 +114,7 @@ router.put("/:id", protect, async (req, res) => {
 
     if (req.body.status !== undefined) {
       if (!VALID_STATUSES.has(req.body.status)) {
-        return res.status(400).json({ message: "Invalid status value" });
+        return next(httpError(400, "Invalid status value"));
       }
       task.status = req.body.status;
     }
@@ -118,7 +122,7 @@ router.put("/:id", protect, async (req, res) => {
     if (req.body.category !== undefined) {
       const categoryResolution = await resolveCategory(req.body.category, req.user);
       if (categoryResolution.error) {
-        return res.status(400).json({ message: categoryResolution.error });
+        return next(httpError(400, categoryResolution.error));
       }
       task.category = categoryResolution.value;
     }
@@ -127,33 +131,31 @@ router.put("/:id", protect, async (req, res) => {
     await task.populate("category", "name");
 
     res.json(task);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  })
+);
 
-router.delete("/:id", protect, async (req, res) => {
-  try {
+router.delete(
+  "/:id",
+  protect,
+  asyncHandler(async (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid task id" });
+      return next(httpError(400, "Invalid task id"));
     }
 
     const task = await Task.findById(req.params.id);
 
     if (!task) {
-      return res.status(404).json({ message: "Task not found" });
+      return next(httpError(404, "Task not found"));
     }
 
     if (task.user.toString() !== req.user) {
-      return res.status(401).json({ message: "Not authorized" });
+      return next(httpError(401, "Not authorized"));
     }
 
     await task.deleteOne();
 
     res.json({ message: "Task removed successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  })
+);
 
 module.exports = router;
