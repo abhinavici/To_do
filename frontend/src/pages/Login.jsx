@@ -1,73 +1,101 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import API from "../services/api";
-import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
-
-const styles = {
-  container: {
-    height: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  card: {
-    background: "white",
-    padding: "30px",
-    borderRadius: "10px",
-    boxShadow: "0 5px 15px rgba(0,0,0,0.1)",
-    textAlign: "center",
-  },
-};
+import { isTokenValid, setToken } from "../utils/auth";
+import { getErrorMessage } from "../utils/http";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    const existingToken = localStorage.getItem("token");
+    if (isTokenValid(existingToken)) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setErrorMessage("");
+
+    if (!email.trim() || !password) {
+      setErrorMessage("Email and password are required.");
+      return;
+    }
 
     try {
+      setIsSubmitting(true);
+
       const { data } = await API.post("/auth/login", {
-        email,
+        email: email.trim(),
         password,
       });
 
-      // Save token in localStorage
-      localStorage.setItem("token", data.token);
-      navigate("/dashboard");
-
-      alert("Login successful!");
+      setToken(data.token);
+      navigate("/dashboard", { replace: true });
     } catch (error) {
-      alert("Invalid credentials");
+      setErrorMessage(getErrorMessage(error, "Login failed. Check your credentials."));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div  style={styles.container}>
-      <div style={styles.card}>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <br /><br />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <br /><br />
-        <button type="submit">Login</button>
-      </form>
-      <p>
-      Don’t have an account? <Link to="/register">Register</Link>
-      </p>
+    <div className="auth-page">
+      <div className="ambient ambient-one" />
+      <div className="ambient ambient-two" />
 
-    </div>
+      <main className="auth-card">
+        <p className="auth-eyebrow">Task Pilot</p>
+        <h1 className="auth-title">Welcome back</h1>
+        <p className="auth-subtitle">
+          Focus your day with one clean board for priorities, progress, and done tasks.
+        </p>
+
+        {location.state?.message ? <p className="notice success">{location.state.message}</p> : null}
+        {errorMessage ? <p className="notice error">{errorMessage}</p> : null}
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label className="input-label" htmlFor="login-email">
+            Email
+          </label>
+          <input
+            id="login-email"
+            className="input-field"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+          />
+
+          <label className="input-label" htmlFor="login-password">
+            Password
+          </label>
+          <input
+            id="login-password"
+            className="input-field"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+          />
+
+          <button className="btn btn-primary" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Signing in..." : "Login"}
+          </button>
+        </form>
+
+        <p className="auth-switch">
+          New here? <Link to="/register">Create account</Link>
+        </p>
+      </main>
     </div>
   );
 }

@@ -1,28 +1,46 @@
 import axios from "axios";
+import { clearToken, getToken, isTokenExpired } from "../utils/auth";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
+const redirectToLogin = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+};
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: API_BASE_URL,
 });
 
-// Automatically attach token to every request
 API.interceptors.request.use((req) => {
-  const token = localStorage.getItem("token");
+  const token = getToken();
 
   if (token) {
+    if (isTokenExpired(token)) {
+      clearToken();
+      redirectToLogin();
+      return req;
+    }
+
     req.headers.Authorization = `Bearer ${token}`;
   }
 
   return req;
 });
 
-// Handle expired token globally
 API.interceptors.response.use(
-  (res) => res,
+  (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      window.location.href = "/";
+    if (error?.response?.status === 401) {
+      clearToken();
+      redirectToLogin();
     }
+
     return Promise.reject(error);
   }
 );
