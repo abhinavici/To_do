@@ -1,19 +1,82 @@
 const TOKEN_KEY = "token";
 
+const resolveSessionStorage = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+};
+
+const resolveLegacyStorage = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
+
+const migrateLegacyToken = () => {
+  const storage = resolveSessionStorage();
+  const legacyStorage = resolveLegacyStorage();
+
+  if (!storage || !legacyStorage) {
+    return storage;
+  }
+
+  const activeToken = storage.getItem(TOKEN_KEY);
+  const legacyToken = legacyStorage.getItem(TOKEN_KEY);
+
+  if (!activeToken && legacyToken) {
+    storage.setItem(TOKEN_KEY, legacyToken);
+  }
+
+  if (legacyToken) {
+    legacyStorage.removeItem(TOKEN_KEY);
+  }
+
+  return storage;
+};
+
 const decodeBase64Url = (value) => {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
   const padding = "=".repeat((4 - (normalized.length % 4)) % 4);
   return atob(normalized + padding);
 };
 
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
+export const getToken = () => {
+  const storage = migrateLegacyToken();
+  return storage ? storage.getItem(TOKEN_KEY) : null;
+};
 
 export const setToken = (token) => {
-  localStorage.setItem(TOKEN_KEY, token);
+  const storage = migrateLegacyToken();
+  if (!storage) {
+    return;
+  }
+
+  storage.setItem(TOKEN_KEY, token);
 };
 
 export const clearToken = () => {
-  localStorage.removeItem(TOKEN_KEY);
+  const storage = migrateLegacyToken();
+  const legacyStorage = resolveLegacyStorage();
+
+  if (storage) {
+    storage.removeItem(TOKEN_KEY);
+  }
+
+  if (legacyStorage) {
+    legacyStorage.removeItem(TOKEN_KEY);
+  }
 };
 
 export const readTokenPayload = (token) => {

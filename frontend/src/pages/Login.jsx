@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import API from "../services/api";
-import { isTokenValid, setToken } from "../utils/auth";
+import { getToken, isTokenValid, setToken } from "../utils/auth";
 import { getErrorMessage } from "../utils/http";
 
 function Login() {
@@ -13,7 +13,7 @@ function Login() {
   const location = useLocation();
 
   useEffect(() => {
-    const existingToken = localStorage.getItem("token");
+    const existingToken = getToken();
     if (isTokenValid(existingToken)) {
       navigate("/dashboard", { replace: true });
     }

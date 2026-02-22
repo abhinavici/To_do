@@ -1,12 +1,38 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { AUTH_LOGOUT_EVENT } from "./services/api";
+
+function AuthRedirectBridge() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleLogout = () => {
+      navigate("/login", { replace: true });
+    };
+
+    window.addEventListener(AUTH_LOGOUT_EVENT, handleLogout);
+    return () => {
+      window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogout);
+    };
+  }, [navigate]);
+
+  return null;
+}
 
 function App() {
   return (
     <Router>
+      <AuthRedirectBridge />
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/register" element={<Register />} />

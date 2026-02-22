@@ -1,18 +1,21 @@
 import axios from "axios";
 import { clearToken, getToken, isTokenExpired } from "../utils/auth";
 
+export const AUTH_LOGOUT_EVENT = "auth:logout";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
 });
 
-const redirectToLogin = () => {
+const notifyLogout = () => {
   if (typeof window === "undefined") {
     return;
   }
 
-  if (window.location.pathname !== "/login") {
-    window.location.href = "/login";
-  }
+  window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
 };
 
 API.interceptors.request.use((req) => {
@@ -21,7 +24,7 @@ API.interceptors.request.use((req) => {
   if (token) {
     if (isTokenExpired(token)) {
       clearToken();
-      redirectToLogin();
+      notifyLogout();
       return req;
     }
 
@@ -36,7 +39,7 @@ API.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       clearToken();
-      redirectToLogin();
+      notifyLogout();
     }
 
     return Promise.reject(error);

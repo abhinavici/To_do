@@ -3,63 +3,21 @@ import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { clearToken } from "../utils/auth";
 import { getErrorMessage } from "../utils/http";
-
-const ALL_CATEGORY_ID = "all";
-const CREATE_NEW_CATEGORY_ID = "__create_new__";
-const COMPLETION_TOAST_DURATION_MS = 1800;
-const CATEGORY_NAME_LIMIT = 50;
-
-const formatDate = (value) => {
-  if (!value) {
-    return "Unknown";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
-};
-
-const toTimestamp = (value) => {
-  const timestamp = new Date(value).getTime();
-  return Number.isFinite(timestamp) ? timestamp : 0;
-};
-
-const getTaskCategoryId = (task) => {
-  if (!task || !task.category) {
-    return "";
-  }
-
-  if (typeof task.category === "string") {
-    return task.category;
-  }
-
-  if (typeof task.category === "object" && task.category._id) {
-    return String(task.category._id);
-  }
-
-  return "";
-};
-
-const getTaskCategoryName = (task) => {
-  if (!task || !task.category) {
-    return "Uncategorized";
-  }
-
-  if (typeof task.category === "object" && task.category.name) {
-    return task.category.name;
-  }
-
-  return "Category";
-};
-
-const sortCategoriesByName = (categories) => {
-  return [...categories].sort((firstCategory, secondCategory) =>
-    firstCategory.name.localeCompare(secondCategory.name)
-  );
-};
+import CreateTaskModal from "../features/dashboard/CreateTaskModal";
+import TaskCard from "../features/dashboard/TaskCard";
+import {
+  ALL_CATEGORY_ID,
+  CATEGORY_NAME_LIMIT,
+  COMPLETION_TOAST_DURATION_MS,
+  CREATE_NEW_CATEGORY_ID,
+} from "../features/dashboard/constants";
+import {
+  formatDate,
+  getTaskCategoryId,
+  getTaskCategoryName,
+  sortCategoriesByName,
+  toTimestamp,
+} from "../features/dashboard/utils";
 
 function Dashboard() {
   const [tasks, setTasks] = useState([]);
@@ -474,114 +432,29 @@ function Dashboard() {
                 const isBusy = busyTaskId === task._id;
 
                 return (
-                  <article
+                  <TaskCard
                     key={task._id}
-                    className={`task-card ${task.status === "completed" ? "is-completed" : ""}`}
-                  >
-                    <div className="task-card-top">
-                      <label className="task-check">
-                        <input
-                          type="checkbox"
-                          checked={task.status === "completed"}
-                          onChange={() => handleToggleStatus(task)}
-                          disabled={isBusy}
-                        />
-                        <span>{task.status === "completed" ? "Completed" : "Mark complete"}</span>
-                      </label>
-
-                      <div className="task-top-right">
-                        <span className="task-time">Updated {formatDate(task.updatedAt)}</span>
-                        {!isEditing ? (
-                          <div className="task-menu-container">
-                            <button
-                              className="menu-trigger"
-                              type="button"
-                              aria-label="Task options"
-                              aria-haspopup="menu"
-                              aria-expanded={menuTaskId === task._id}
-                              aria-controls={`task-menu-${task._id}`}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setMenuTaskId((currentMenuTaskId) =>
-                                  currentMenuTaskId === task._id ? "" : task._id
-                                );
-                              }}
-                            >
-                              <span className="menu-trigger-glyph" aria-hidden="true">
-                                ⋮
-                              </span>
-                            </button>
-                            {menuTaskId === task._id ? (
-                              <div className="task-menu" role="menu" id={`task-menu-${task._id}`}>
-                                <button
-                                  type="button"
-                                  role="menuitem"
-                                  onClick={() => startEditingTask(task)}
-                                  disabled={isBusy}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="danger-item"
-                                  type="button"
-                                  role="menuitem"
-                                  onClick={() => handleDelete(task._id)}
-                                  disabled={isBusy}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {isEditing ? (
-                      <div className="task-edit-mode">
-                        <input
-                          className="input-field"
-                          value={editTitle}
-                          onChange={(event) => setEditTitle(event.target.value)}
-                          placeholder="Task title"
-                        />
-                        <textarea
-                          className="input-field text-area"
-                          value={editDescription}
-                          onChange={(event) => setEditDescription(event.target.value)}
-                          placeholder="Task description"
-                        />
-                        <div className="task-actions">
-                          <button
-                            className="btn btn-primary"
-                            onClick={() => handleSaveEdit(task._id)}
-                            type="button"
-                            disabled={isBusy}
-                          >
-                            {isBusy ? "Saving..." : "Save"}
-                          </button>
-                          <button
-                            className="btn btn-ghost"
-                            onClick={cancelEditing}
-                            type="button"
-                            disabled={isBusy}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <h3>{task.title}</h3>
-                        <p className="task-category-tag">{getTaskCategoryName(task)}</p>
-                        {task.description ? (
-                          <p className="task-description">{task.description}</p>
-                        ) : (
-                          <p className="task-description empty">No description</p>
-                        )}
-                      </>
-                    )}
-                  </article>
+                    task={task}
+                    isEditing={isEditing}
+                    isBusy={isBusy}
+                    isMenuOpen={menuTaskId === task._id}
+                    editTitle={editTitle}
+                    editDescription={editDescription}
+                    onToggleStatus={handleToggleStatus}
+                    onToggleMenu={(taskId) =>
+                      setMenuTaskId((currentMenuTaskId) =>
+                        currentMenuTaskId === taskId ? "" : taskId
+                      )
+                    }
+                    onStartEdit={startEditingTask}
+                    onDelete={handleDelete}
+                    onEditTitleChange={setEditTitle}
+                    onEditDescriptionChange={setEditDescription}
+                    onSaveEdit={handleSaveEdit}
+                    onCancelEdit={cancelEditing}
+                    getTaskCategoryName={getTaskCategoryName}
+                    formatDate={formatDate}
+                  />
                 );
               })}
             </div>
@@ -589,105 +462,21 @@ function Dashboard() {
         </div>
       </div>
 
-      {isCreateModalOpen ? (
-        <div className="modal-overlay" onClick={closeCreateModal}>
-          <section
-            className="create-modal panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-task-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="create-modal-header">
-              <div>
-                <p className="auth-eyebrow">Create +</p>
-                <h2 id="create-task-title">Create Task</h2>
-              </div>
-              <button className="btn btn-ghost" type="button" onClick={closeCreateModal}>
-                Close
-              </button>
-            </div>
-
-            <form className="task-form" onSubmit={handleCreateTask}>
-              <label className="input-label" htmlFor="create-task-title-input">
-                Title
-              </label>
-              <input
-                id="create-task-title-input"
-                className="input-field"
-                type="text"
-                value={createTitle}
-                onChange={(event) => setCreateTitle(event.target.value)}
-                placeholder="Plan release notes"
-                autoFocus
-              />
-
-              <label className="input-label" htmlFor="create-task-description-input">
-                Description
-              </label>
-              <textarea
-                id="create-task-description-input"
-                className="input-field text-area"
-                value={createDescription}
-                onChange={(event) => setCreateDescription(event.target.value)}
-                placeholder="Add context, blockers, and checklist"
-              />
-
-              <label className="input-label" htmlFor="create-task-category-select">
-                Category
-              </label>
-              <select
-                id="create-task-category-select"
-                className="input-field"
-                value={createCategorySelection}
-                onChange={(event) => setCreateCategorySelection(event.target.value)}
-              >
-                <option value={ALL_CATEGORY_ID}>All Tasks</option>
-                {categories.map((category) => (
-                  <option key={category._id} value={category._id}>
-                    {category.name}
-                  </option>
-                ))}
-                <option value={CREATE_NEW_CATEGORY_ID}>Create category...</option>
-              </select>
-
-              {createCategorySelection === CREATE_NEW_CATEGORY_ID ? (
-                <>
-                  <label className="input-label" htmlFor="create-new-category-input">
-                    New Category Name
-                  </label>
-                  <input
-                    id="create-new-category-input"
-                    className="input-field"
-                    type="text"
-                    maxLength={CATEGORY_NAME_LIMIT}
-                    value={createCategoryName}
-                    onChange={(event) => setCreateCategoryName(event.target.value)}
-                    placeholder="Work, Personal, Deep Focus"
-                  />
-                  <p className="modal-hint">
-                    New categories are created while creating the task.
-                  </p>
-                </>
-              ) : null}
-
-              <div className="create-modal-actions">
-                <button
-                  className="btn btn-ghost"
-                  type="button"
-                  onClick={closeCreateModal}
-                  disabled={isCreateTaskSubmitting}
-                >
-                  Cancel
-                </button>
-                <button className="btn btn-primary" type="submit" disabled={isCreateTaskSubmitting}>
-                  {isCreateTaskSubmitting ? "Creating..." : "Create +"}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      ) : null}
+      <CreateTaskModal
+        isOpen={isCreateModalOpen}
+        isSubmitting={isCreateTaskSubmitting}
+        onClose={closeCreateModal}
+        onSubmit={handleCreateTask}
+        createTitle={createTitle}
+        onCreateTitleChange={setCreateTitle}
+        createDescription={createDescription}
+        onCreateDescriptionChange={setCreateDescription}
+        createCategorySelection={createCategorySelection}
+        onCreateCategorySelectionChange={setCreateCategorySelection}
+        createCategoryName={createCategoryName}
+        onCreateCategoryNameChange={setCreateCategoryName}
+        categories={categories}
+      />
 
       {completionToast ? <div className="status-toast">{completionToast}</div> : null}
     </div>
