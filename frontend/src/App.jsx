@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AUTH_LOGOUT_EVENT } from "./services/api";
@@ -37,6 +38,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route
           path="/dashboard"
           element={

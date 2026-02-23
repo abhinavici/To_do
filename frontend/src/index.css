@@ -767,3 +767,59 @@ textarea {
     width: 100%;
   }
 }
+
+/* ── OTP Styles ─────────────────────────── */
+.otp-input {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 12px;
+  padding: 14px 16px;
+  color: var(--ink);
+}
+
+.otp-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--sea-strong);
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+}
+
+.btn-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.otp-steps {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 4px 0 20px;
+}
+
+.otp-step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.2s;
+}
+
+.otp-step-dot.active {
+  background: var(--sea);
+}
+
+.otp-step-dot.done {
+  background: var(--success);
+}

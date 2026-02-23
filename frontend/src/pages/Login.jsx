@@ -90,6 +90,10 @@ function Login() {
           <button className="btn btn-primary" type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Signing in..." : "Login"}
           </button>
+
+          <p style={{ textAlign: "center", margin: "4px 0 0" }}>
+            <Link to="/forgot-password" style={{ fontSize: "14px" }}>Forgot password?</Link>
+          </p>
         </form>
 
         <p className="auth-switch">
