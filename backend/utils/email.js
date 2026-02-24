@@ -2,15 +2,22 @@ const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,       // Secure Port for SSL
-  secure: true,    // true for 465, false for other ports
+  port: 587,       // Secure Port for SSL
+  secure: false,    // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS, // Your 16-digit App Password
   },
-  // These help prevent timeouts on slower cloud connections
-  connectionTimeout: 10000, 
-  greetingTimeout: 10000,
+  tls: {
+    rejectUnauthorized: false
+  }
+});
+transporter.verify(function (error, success) {
+  if (error) {
+    console.log("CRITICAL EMAIL ERROR:", error);
+  } else {
+    console.log("SUCCESS: Render is connected to Gmail!");
+  }
 });
 
 /**
