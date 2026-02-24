@@ -1,7 +1,8 @@
 const express = require("express");
 const app = express();
-app.set('trust proxy', 1); 
-
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
@@ -12,7 +13,6 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const protect = require("./middleware/authMiddleware");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
-const app = express();
 const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"];
 
 const toPositiveInteger = (value, fallbackValue) => {
