@@ -1,38 +1,9 @@
-const nodemailer = require("nodemailer");
+const axios = require("axios");
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,       // Secure Port for SSL
-  secure: false,    // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Your 16-digit App Password
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
-transporter.verify(function (error, success) {
-  if (error) {
-    console.log("CRITICAL EMAIL ERROR:", error);
-  } else {
-    console.log("SUCCESS: Render is connected to Gmail!");
-  }
-});
-
-/**
- * Generate a 6-digit OTP
- */
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-/**
- * Send OTP email
- * @param {string} to - Recipient email
- * @param {string} otp - The OTP code
- * @param {"register"|"reset"} type - Purpose of the OTP
- */
 async function sendOtpEmail(to, otp, type) {
   const subject =
     type === "register"
@@ -63,12 +34,21 @@ async function sendOtpEmail(to, otp, type) {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"Task Pilot" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  });
+  await axios.post(
+    "https://api.brevo.com/v3/smtp/email",
+    {
+      sender: { name: "Task Pilot", email: "iabhinav216@gmail.com" },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    },
+    {
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "Content-Type": "application/json",
+      },
+    }
+  );
 }
 
 module.exports = { generateOtp, sendOtpEmail };
